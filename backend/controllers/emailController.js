@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const History = require("../models/History");
 
 const sendEmail = async (req, res) => {
   try {
@@ -41,9 +42,20 @@ const sendEmail = async (req, res) => {
       },
     });
 
+    const historyEntry = await History.create({
+      user: req.user._id,
+      to,
+      subject,
+      message,
+      senderName,
+      senderEmail,
+      status: "Sent",
+    });
+
     res.json({
       success: true,
       message: "Email sent successfully",
+      history: historyEntry,
     });
   } catch (error) {
     console.log(error);

@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [hideNav, setHideNav] = useState(false);
   const [user, setUser] = useState(null);
   const [openProfile, setOpenProfile] = useState(false);
+
+  const navItems = [
+    { to: "/", label: "Home" },
+    { to: "/pricing", label: "Pricing" },
+    { to: "/dashboard", label: "Dashboard" },
+    { to: "/send-campaign", label: "Send" },
+    { to: "/contacts", label: "Contacts" },
+    { to: "/history", label: "History" },
+  ];
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user"));
@@ -48,6 +58,10 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    setOpenProfile(false);
+  }, [location.pathname]);
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -57,18 +71,64 @@ function Navbar() {
     navigate("/login");
   };
 
+  const renderDesktopMenu = () => (
+    <div className="profileMenu">
+      <div className="profileInfo">
+        <h4>{user.name}</h4>
+        <p>{user.email}</p>
+      </div>
+
+      {navItems.slice(1).map((item) => (
+        <Link key={item.to} to={item.to} onClick={() => setOpenProfile(false)}>
+          {item.label}
+        </Link>
+      ))}
+
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+
+  const renderMobileMenu = () => (
+    <div className="profileMenu mobileProfileMenu">
+      <div className="mobileMenuHero">
+        <div className="mobileMenuAvatar">
+          {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+        </div>
+
+        <div className="profileInfo mobileProfileInfo">
+          <h4>{user.name}</h4>
+          <p>{user.email}</p>
+        </div>
+      </div>
+
+      <div className="mobileMenuLinks">
+        {navItems.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={location.pathname === item.to ? "activeMobileLink" : ""}
+            onClick={() => setOpenProfile(false)}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+
   return (
     <>
       <nav className={`navbar ${hideNav ? "navHidden" : ""}`}>
         <Link to="/" className="logo">MailFlow</Link>
 
         <div className="navLinks">
-          <Link to="/">Home</Link>
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/send-campaign">Send</Link>
-          <Link to="/contacts">Contacts</Link>
-          <Link to="/history">History</Link>
+          {navItems.map((item) => (
+            <Link key={item.to} to={item.to}>
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         <div className="navActions">
@@ -86,48 +146,33 @@ function Navbar() {
                 {user.name ? user.name.charAt(0).toUpperCase() : "U"}
               </button>
 
-              {openProfile && (
-                <div className="profileMenu">
-                  <div className="profileInfo">
-                    <h4>{user.name}</h4>
-                    <p>{user.email}</p>
-                  </div>
-
-                  <Link to="/dashboard" onClick={() => setOpenProfile(false)}>
-                    Dashboard
-                  </Link>
-
-                  <Link to="/pricing" onClick={() => setOpenProfile(false)}>
-                    Pricing
-                  </Link>
-
-                  <Link to="/send-campaign" onClick={() => setOpenProfile(false)}>
-                    Send Campaign
-                  </Link>
-
-                  <Link to="/contacts" onClick={() => setOpenProfile(false)}>
-                    Contacts
-                  </Link>
-
-                  <Link to="/history" onClick={() => setOpenProfile(false)}>
-                    History
-                  </Link>
-
-                  <button onClick={logout}>Logout</button>
-                </div>
-              )}
+              {openProfile && renderDesktopMenu()}
             </div>
           )}
         </div>
       </nav>
 
-      <nav className="mobileBottomNav">
-        <Link to="/">Home</Link>
-        <Link to="/pricing">Pricing</Link>
-        <Link to="/dashboard">Dash</Link>
-        <Link to="/send-campaign">Send</Link>
-        <Link to="/contacts">Contacts</Link>
-        <Link to="/history">History</Link>
+      <nav className="mobileTopNav">
+        <Link to="/" className="logo mobileLogo">MailFlow</Link>
+
+        <div className="mobileTopActions">
+          {!user ? (
+            <Link to="/login" className="profileBtn mobileProfileLink">
+              U
+            </Link>
+          ) : (
+            <div className="profileArea">
+              <button
+                className="profileBtn"
+                onClick={() => setOpenProfile(!openProfile)}
+              >
+                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+              </button>
+
+              {openProfile && renderMobileMenu()}
+            </div>
+          )}
+        </div>
       </nav>
     </>
   );

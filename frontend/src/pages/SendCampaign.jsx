@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import "../App.css";
+import API_BASE_URL from "../config/api";
+import { getAuthHeaders, getAuthToken } from "../config/auth";
 
 function SendCampaign() {
   const [contacts, setContacts] = useState([]);
@@ -17,17 +19,33 @@ function SendCampaign() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const savedContacts =
-      JSON.parse(localStorage.getItem("contacts")) || [];
+    const loadPageData = async () => {
+      const user = JSON.parse(localStorage.getItem("user"));
 
-    setContacts(savedContacts);
+      if (user) {
+        setSenderName(user.name || "");
+        setSenderEmail(user.email || "");
+      }
 
-    const user = JSON.parse(localStorage.getItem("user"));
+      if (!getAuthToken()) {
+        return;
+      }
 
-    if (user) {
-      setSenderName(user.name || "");
-      setSenderEmail(user.email || "");
-    }
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/contacts`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          setContacts(data.contacts || []);
+        }
+      } catch (error) {
+        // Keep the page usable even if contacts fail to load.
+      }
+    };
+
+    loadPageData();
   }, []);
 
   const sendEmail = async (e) => {
@@ -46,13 +64,13 @@ function SendCampaign() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/email/send",
+        `${API_BASE_URL}/api/email/send`,
         {
           method: "POST",
 
-          headers: {
+          headers: getAuthHeaders({
             "Content-Type": "application/json",
-          },
+          }),
 
           body: JSON.stringify({
             to,
@@ -71,28 +89,6 @@ function SendCampaign() {
         setLoading(false);
         return;
       }
-
-      const history =
-        JSON.parse(localStorage.getItem("history")) || [];
-
-      const newHistory = [
-        {
-          id: Date.now(),
-          to,
-          subject,
-          message,
-          senderEmail,
-          date: new Date().toLocaleString(),
-          status: "Sent",
-        },
-
-        ...history,
-      ];
-
-      localStorage.setItem(
-        "history",
-        JSON.stringify(newHistory)
-      );
 
       setStatus("Email sent successfully");
 
